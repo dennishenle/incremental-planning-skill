@@ -1,5 +1,5 @@
 ---
-name: incremental-approach
+name: incremental-planning
 description: >-
   Enforces an incremental planning-then-executing workflow for complex tasks.
   Use when the user asks to plan, break down, or incrementally implement a
@@ -7,7 +7,7 @@ description: >-
   AGENT/, PLAN.md, TASK files, or UPCOMING_TASK.md.
 ---
 
-# Incremental Approach
+# Incremental Planning
 
 A two-phase workflow that separates **planning** from **execution**. Work is
 broken into discrete task files so the user can review, ask questions, and

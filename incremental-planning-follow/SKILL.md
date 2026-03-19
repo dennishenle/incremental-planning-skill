@@ -1,13 +1,13 @@
 ---
-name: incremental-approach-follow
+name: incremental-planning-follow
 description: >-
   Executes the next task in an incremental plan created by the
-  incremental-approach skill. Use when the user asks to continue, implement,
+  incremental-planning skill. Use when the user asks to continue, implement,
   proceed, or follow up on a planned task, or references UPCOMING_TASK.md,
   AGENT/PLAN.md, or asks to work on the next step.
 ---
 
-# Incremental Approach — Follow Up
+# Incremental Planning — Follow Up
 
 This skill implements a single task from an existing incremental plan inside
 the `AGENT/` directory. It enforces strict one-task-at-a-time execution.
