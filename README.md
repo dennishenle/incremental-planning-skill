@@ -8,6 +8,10 @@ A collection of [Cursor Agent Skills](https://docs.cursor.com/context/skills) th
 
 Analyzes uncommitted changes, generates a [Conventional Commits](https://www.conventionalcommits.org/) message, commits, and pushes to origin. Prevents accidental commits to `main`/`master` by prompting for a branch name first.
 
+### `create-pull-request`
+
+Opens a GitHub pull request from the current branch into `main` using the `gh` CLI. Ensures the working tree is clean (delegating to `commit-changes` if needed), gathers commit context, and crafts a Conventional Commits-style title with a structured description.
+
 ### `incremental-planning`
 
 Enforces a **plan-then-execute** workflow for complex tasks. The agent creates an `AGENT/` directory with a `PLAN.md` overview and individual `TASK_<N>.md` files. Nothing is implemented until you review and approve. Paired with `incremental-planning-follow` for execution.
@@ -25,7 +29,7 @@ Clone the repository and copy the skills you want into your Cursor skills direct
 cp -r <skill-directory> ~/.cursor/skills/<skill-directory>
 
 # or copy all skills at once
-cp -r commit-changes incremental-planning incremental-planning-follow ~/.cursor/skills/
+cp -r commit-changes create-pull-request incremental-planning incremental-planning-follow ~/.cursor/skills/
 ```
 
 Cursor automatically detects skills from the `SKILL.md` file inside each directory.
