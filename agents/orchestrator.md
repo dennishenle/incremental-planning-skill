@@ -1,6 +1,6 @@
 ---
 name: orchestrator
-description: Sequential task orchestrator for /implement all mode. Drives a plan created by /plan-tasks from start to finish: dependency-checks, subagent spawning, completion verification, downstream propagation, and final reporting. Spawned automatically by /implement <slug> all.
+description: "Sequential task orchestrator for /implement all mode. Drives a plan created by /plan-tasks from start to finish: dependency-checks, subagent spawning, completion verification, downstream propagation, and final reporting. Spawned automatically by /implement <slug> all."
 tools: ["Read", "Write", "Edit", "Glob", "Grep", "Agent"]
 model: opus
 ---
