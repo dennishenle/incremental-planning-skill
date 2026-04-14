@@ -1,0 +1,44 @@
+[
+  {
+    "name": "commit-changes",
+    "type": "skill",
+    "source": "skills/commit-changes",
+    "target": "$HOME/.cursor/skills/commit-changes"
+  },
+  {
+    "name": "create-pull-request",
+    "type": "skill",
+    "source": "skills/create-pull-request",
+    "target": "$HOME/.cursor/skills/create-pull-request"
+  },
+  {
+    "name": "tdd-workflow",
+    "type": "skill",
+    "source": "skills/tdd-workflow",
+    "target": "$HOME/.cursor/skills/tdd-workflow"
+  },
+  {
+    "name": "orchestrator",
+    "type": "agent",
+    "source": "agents/orchestrator.md",
+    "target": "$HOME/.cursor/agents/orchestrator.md"
+  },
+  {
+    "name": "planner",
+    "type": "agent",
+    "source": "agents/planner.md",
+    "target": "$HOME/.cursor/agents/planner.md"
+  },
+  {
+    "name": "plan-tasks",
+    "type": "command",
+    "source": "commands/plan-tasks.md",
+    "target": "$HOME/.cursor/commands/plan-tasks.md"
+  },
+  {
+    "name": "implement",
+    "type": "command",
+    "source": "commands/implement.md",
+    "target": "$HOME/.cursor/commands/implement.md"
+  }
+]
