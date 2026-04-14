@@ -54,13 +54,7 @@ install_components() {
     local abs_source="$repo_root/$source"
     local abs_target="${target/\$HOME/$HOME}"
 
-    local target_dir
-    if [[ "$type" == "skill" ]]; then
-      target_dir="$(dirname "$abs_target")"
-    else
-      target_dir="$(dirname "$abs_target")"
-    fi
-    mkdir -p "$target_dir"
+    mkdir -p "$(dirname "$abs_target")"
 
     if [[ -L "$abs_target" ]]; then
       local current
@@ -91,18 +85,167 @@ print_summary() {
   echo "Summary: $installed installed, $skipped skipped, $warned warnings"
 }
 
+# --- Remote install (curl | sh) ---
+
+remote_install() {
+  if ! command -v git > /dev/null 2>&1; then
+    echo "Error: git is required but not found."
+    exit 1
+  fi
+
+  if [[ -d "$CLONE_DIR/.git" ]]; then
+    echo "Updating existing clone at $CLONE_DIR ..."
+    git -C "$CLONE_DIR" pull --ff-only
+  else
+    echo "Cloning $REPO_URL to $CLONE_DIR ..."
+    git clone "$REPO_URL" "$CLONE_DIR"
+  fi
+
+  echo "Installing from $CLONE_DIR ..."
+  install_components "$CLONE_DIR"
+  print_summary
+}
+
+# --- List components ---
+
+list_components() {
+  local repo_root="$1"
+  shift
+  local filter_type="${1:-}"
+
+  printf "%-20s %-10s %s\n" "NAME" "TYPE" "STATUS"
+  printf "%-20s %-10s %s\n" "----" "----" "------"
+
+  while IFS=$'\t' read -r name type source target; do
+    if [[ -n "$filter_type" ]] && [[ "$filter_type" != "all" ]]; then
+      if [[ "$type" != "$filter_type" ]] && [[ "$name" != "$filter_type" ]]; then
+        continue
+      fi
+    fi
+
+    local abs_source="$repo_root/$source"
+    local abs_target="${target/\$HOME/$HOME}"
+    local status="not installed"
+
+    if [[ -L "$abs_target" ]]; then
+      local current
+      current="$(readlink "$abs_target")"
+      if [[ "$current" == "$abs_source" ]]; then
+        status="installed"
+      else
+        status="conflict"
+      fi
+    elif [[ -e "$abs_target" ]]; then
+      status="conflict"
+    fi
+
+    printf "%-20s %-10s %s\n" "$name" "$type" "$status"
+  done < <(parse_manifest "$repo_root")
+}
+
+# --- Update ---
+
+update_install() {
+  local repo_root="$1"
+  if ! command -v git > /dev/null 2>&1; then
+    echo "Error: git is required for --update."
+    exit 1
+  fi
+  echo "Updating repository ..."
+  git -C "$repo_root" pull --ff-only
+  echo "Re-linking components ..."
+  install_components "$repo_root"
+  print_summary
+}
+
+# --- Usage ---
+
+print_help() {
+  cat <<'HELP'
+Usage: install.sh [OPTIONS]
+
+Install agent skills, agents, and commands via symlinks.
+
+Options:
+  --only <filter>   Install only matching components. <filter> can be:
+                      - a type: skills, agents, commands
+                      - a component name: commit-changes, orchestrator, etc.
+  --list            List available components and their install status
+  --update          Pull latest changes and re-link new components
+  --help            Show this help message
+
+Examples:
+  ./install.sh                       Install everything
+  ./install.sh --only skills         Install only skills
+  ./install.sh --only commit-changes Install a single component
+  ./install.sh --list                Show available components
+  ./install.sh --update              Update and re-link
+
+Remote install (no clone required):
+  curl -fsSL https://raw.githubusercontent.com/dennis-tra/agent-skills/main/install.sh | sh
+HELP
+}
+
 # --- Main ---
 
 main() {
+  local action="install"
+  local filter=""
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --only)
+        filter="${2:-}"
+        if [[ -z "$filter" ]]; then
+          echo "Error: --only requires an argument"
+          exit 1
+        fi
+        shift 2
+        ;;
+      --list)
+        action="list"
+        shift
+        ;;
+      --update)
+        action="update"
+        shift
+        ;;
+      --help|-h)
+        print_help
+        return 0
+        ;;
+      *)
+        echo "Unknown option: $1"
+        print_help
+        exit 1
+        ;;
+    esac
+  done
+
   local repo_root
   if repo_root="$(resolve_repo_root)"; then
-    echo "Installing from $repo_root ..."
-    install_components "$repo_root"
-    print_summary
+    case "$action" in
+      list)
+        list_components "$repo_root" "$filter"
+        ;;
+      update)
+        update_install "$repo_root"
+        ;;
+      install)
+        echo "Installing from $repo_root ..."
+        # Normalize type filter: strip trailing 's' from plural forms
+        local type_filter="$filter"
+        case "$filter" in
+          skills)   type_filter="skill" ;;
+          agents)   type_filter="agent" ;;
+          commands) type_filter="command" ;;
+        esac
+        install_components "$repo_root" "$type_filter"
+        print_summary
+        ;;
+    esac
   else
-    echo "Error: not running from a local clone (no .git directory found)."
-    echo "Run this script from within the agent-skills repository."
-    exit 1
+    remote_install
   fi
 }
 
