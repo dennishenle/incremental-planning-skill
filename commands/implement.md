@@ -125,60 +125,79 @@ Next: /implement <feature-slug> <NN+1>
 
 *Activated when `<target>` is `all`.*
 
-This mode uses the **orchestrator** agent to coordinate sequential subagent execution. The orchestrator maintains the task loop and state; each individual task runs in its own isolated subagent.
+Invoke the **orchestrator** agent with:
 
-### 2a. Pre-flight
+- `<plan-dir>`: `.claude/plans/<feature-slug>/`
+- `<task-instructions>`: the template below
 
-Read `_index.md` and collect all tasks with `status: pending` in ascending order. Skip tasks that are already `done`.
+The orchestrator handles pre-flight validation, the sequential execution loop, downstream propagation, and the final report. See the orchestrator definition for those mechanics.
 
-If all tasks are already done:
+### Task instruction template
+
+Pass the following as `<task-instructions>` to the orchestrator. The orchestrator substitutes `<NN>` and `<plan-dir>` before handing it to each subagent.
+
+````
+You are implementing task <NN> from the plan at <plan-dir>.
+
+Execute the following steps in order. Do not skip any step.
+
+## 1. Mark In-Progress
+Update `task-<NN>.md` frontmatter: set `status: in-progress`.
+Update the corresponding row in `_index.md` to `in-progress`.
+
+## 2. Implement with TDD
+Apply the tdd-workflow to implement this task using its acceptance criteria as the test target:
+1. RED   — Write failing tests that cover each acceptance criterion
+2. GREEN — Write the minimum implementation to make all tests pass
+3. REFACTOR — Clean up without breaking tests
+4. VERIFY — Run type-check and lint; resolve any issues
+
+## 3. Mark Done
+Update `task-<NN>.md`:
+- Set `status: done` in frontmatter
+- Append this section at the end of the file:
+
+```markdown
+## Implementation Notes
+<!-- Added by /implement after completion -->
+
+**Completed:** <YYYY-MM-DD>
+
+**Files changed:**
+- `path/to/file` — created | modified
+
+**Deviations from plan:**
+<Describe any deviations and why, or write "None".>
+
+**Interface changes:**
+<List any public interfaces, types, function signatures, or file paths that
+differ from what the plan described. Downstream tasks may need updating.>
 ```
-All tasks are already complete. Nothing to implement.
-```
 
-### 2b. Orchestration Loop
+Update the corresponding row in `_index.md` to `done`.
 
-The **orchestrator** agent runs the following loop sequentially — one task at a time, never in parallel (tasks may depend on each other's output).
+## 4. Update Downstream Tasks
+Scan all task files with `status: pending` or `status: in-progress` that have a task number greater than <NN>.
 
-For each pending task in order:
+For each downstream task, compare its Context and Acceptance Criteria sections against the Interface changes you recorded in step 3.
 
-**Step 1 — Dependency check**
-Verify all tasks listed in `depends_on` are `done`. If not, this indicates a plan error — report it and halt the loop.
+If any interface, file path, type name, or data structure you introduced or changed affects a downstream task:
+- Update the Context section of that downstream task file to reflect the actual implementation
+- Prepend a notice at the top of the affected section:
+  > Updated after task <NN>: <brief reason>
+- Do NOT alter the task's Goal or Acceptance Criteria unless a criterion has become impossible or redundant. If so, annotate with a strikethrough and a note — never delete silently.
 
-**Step 2 — Spawn task subagent**
-Launch a subagent for the current task. Pass the subagent:
-- The full content of `task-<NN>.md`
-- The full content of `_index.md`
-- The current content of all downstream `task-*.md` files
-- The instruction to execute **Phase 1, steps 1a–1e** (single task mode, minus the pre-flight checks already done by the orchestrator)
+When done, output a short summary:
+- Task status (done / failed)
+- Tests written and passing
+- Files changed
+- Downstream tasks updated (or "none")
+- Any deviations from the plan
+````
 
-**Step 3 — Wait and verify**
-Wait for the subagent to complete. Read back `task-<NN>.md` and confirm `status: done`. If the subagent did not mark it done or reported an error:
-- Pause the loop
-- Report the failure to the user with the subagent's output
-- Wait for user instruction (`continue`, `skip`, or `abort`) before proceeding
-
-**Step 4 — Propagate downstream updates**
-Read the **Interface changes** section written by the subagent. Apply any downstream task file updates that the subagent may have missed or that affect tasks further ahead in the queue. (The orchestrator has the full task graph view; subagents only see their immediate downstream.)
-
-**Step 5 — Advance**
-Move to the next pending task and repeat.
-
-### 2c. Final Report
-
-After all tasks complete (or the loop is halted):
+After the orchestrator's final report, append:
 
 ```
-## Implementation Complete: <feature-slug>
-
-| # | Title | Status | Files Changed |
-|---|-------|--------|---------------|
-| 01 | <title> | done | N |
-| 02 | <title> | done | N |
-| 03 | <title> | skipped / failed | — |
-
-Total: N tasks completed, M files created or modified
-
 Suggested next steps:
   /code-review     review all changes before committing
   /prp-commit      commit with a structured message
